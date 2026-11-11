@@ -1,0 +1,5 @@
+{
+    "algorithm": "aes-ctr",
+    "nonce": "31c6bdf896bbea9b6d20f375dc89c129",
+    "source": "gradient.png"
+}
