@@ -1,0 +1,15 @@
+{
+    "source": "checkerboard.png",
+    "width": 512,
+    "height": 512,
+    "sha256_original": "81639f0e81a3df2adaf704e126e9e5547b68f7bc709f9341bbc27458b994a677",
+    "kdf": "pbkdf2-hmac-sha256",
+    "salt": "bb1e64b8114183313838af88e352268e",
+    "iterations": 200000,
+    "nonce": "23d2287beb33bade71c4be64e810409a",
+    "files": {
+        "xor": "checkerboard.xor.bin",
+        "ecb": "checkerboard.ecb.bin",
+        "ctr": "checkerboard.ctr.bin"
+    }
+}

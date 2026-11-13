@@ -1,0 +1,15 @@
+{
+    "source": "gradient.png",
+    "width": 512,
+    "height": 512,
+    "sha256_original": "7cbd586c31f7eb0dc055ce5a3d0d23da6c93701fcb0e2742515bbca7db905a8f",
+    "kdf": "pbkdf2-hmac-sha256",
+    "salt": "52069952f1dd01b0de24d5da03ec77fe",
+    "iterations": 200000,
+    "nonce": "a0bf96d4dd4a8f36e5144310a36d4eb6",
+    "files": {
+        "xor": "gradient.xor.bin",
+        "ecb": "gradient.ecb.bin",
+        "ctr": "gradient.ctr.bin"
+    }
+}

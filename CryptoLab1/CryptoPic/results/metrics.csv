@@ -1,0 +1,11 @@
+﻿image,method,entropy,corr_h,corr_v,npcr,uaci
+gradient.png,Оригинал,7.4137,1.0,0.9999,,
+gradient.png,XOR,7.9993,0.0013,-0.0012,,
+gradient.png,AES-ECB,7.99,0.0006,0.3534,,
+gradient.png,AES-CTR,7.9992,0.0016,0.0019,,
+gradient.png,AES-CTR (key+1bit),,,,99.61,33.47
+checkerboard.png,Оригинал,1.0,0.9413,0.9413,,
+checkerboard.png,XOR,7.9992,-0.0025,-0.0027,,
+checkerboard.png,AES-ECB,4.9375,0.07,0.9763,,
+checkerboard.png,AES-CTR,7.9993,-0.0011,-0.0001,,
+checkerboard.png,AES-CTR (key+1bit),,,,99.59,33.39
