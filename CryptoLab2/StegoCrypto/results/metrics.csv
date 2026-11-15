@@ -1,0 +1,9 @@
+﻿image,method,psnr,ssim,changed_ratio,p_lsb_1,chi2,p_value
+gradient.png,Plain LSB,83.99,1.0,0.0003,0.4983,233.17,0.0
+gradient.png,Encrypted LSB,82.04,1.0,0.0004,0.4985,203.97,0.0
+gradient.png,Random LSB,82.08,1.0,0.0004,0.498,273.8,0.0
+checkerboard.png,Plain LSB,84.1,1.0,0.0003,0.25,261872.12,0.0
+checkerboard.png,Encrypted LSB,82.0,1.0,0.0004,0.25,261696.28,0.0
+checkerboard.png,Random LSB,81.94,1.0,0.0004,0.2502,261724.17,0.0
+gradient.png,1% Payload,70.99,0.9999,0.0052,0.4981,268.73,0.0
+gradient.png,5% Payload,64.14,0.9996,0.0251,0.4987,260.53,0.0
