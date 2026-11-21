@@ -1,11 +1,11 @@
-﻿image,method,entropy,corr_h,corr_v,npcr,uaci
-gradient.png,Оригинал,7.4137,1.0,0.9999,,
-gradient.png,XOR,7.9993,0.0013,-0.0012,,
-gradient.png,AES-ECB,7.99,0.0006,0.3534,,
-gradient.png,AES-CTR,7.9992,0.0016,0.0019,,
-gradient.png,AES-CTR (key+1bit),,,,99.61,33.47
-checkerboard.png,Оригинал,1.0,0.9413,0.9413,,
-checkerboard.png,XOR,7.9992,-0.0025,-0.0027,,
-checkerboard.png,AES-ECB,4.9375,0.07,0.9763,,
-checkerboard.png,AES-CTR,7.9993,-0.0011,-0.0001,,
-checkerboard.png,AES-CTR (key+1bit),,,,99.59,33.39
+﻿image,method,entropy,corr_h,corr_v,npcr,uaci,sha256_original,sha256_restored,verified
+gradient.png,Оригинал,7.4137,1.0,0.9999,,,6e5ed3e74a295bc621737d32042f8ba89e3a42ab1088e62dceee558042c49dd0,,
+gradient.png,XOR,7.9993,0.0013,-0.0012,,,6e5ed3e74a295bc621737d32042f8ba89e3a42ab1088e62dceee558042c49dd0,6e5ed3e74a295bc621737d32042f8ba89e3a42ab1088e62dceee558042c49dd0,ok
+gradient.png,AES-ECB,7.9895,-0.0014,0.3596,,,6e5ed3e74a295bc621737d32042f8ba89e3a42ab1088e62dceee558042c49dd0,6e5ed3e74a295bc621737d32042f8ba89e3a42ab1088e62dceee558042c49dd0,ok
+gradient.png,AES-CTR,7.9994,0.0024,-0.0009,,,6e5ed3e74a295bc621737d32042f8ba89e3a42ab1088e62dceee558042c49dd0,6e5ed3e74a295bc621737d32042f8ba89e3a42ab1088e62dceee558042c49dd0,ok
+gradient.png,AES-CTR (key+1bit),,,,99.6,33.4,,,
+kitten.png,Оригинал,7.5736,0.994,0.994,,,ae706729a01a36fd99f9105ef2cc489e4e951ecc3add763f6229a41095445fe4,,
+kitten.png,XOR,7.9996,0.0016,-0.0012,,,ae706729a01a36fd99f9105ef2cc489e4e951ecc3add763f6229a41095445fe4,ae706729a01a36fd99f9105ef2cc489e4e951ecc3add763f6229a41095445fe4,ok
+kitten.png,AES-ECB,7.9984,-0.001,0.1677,,,ae706729a01a36fd99f9105ef2cc489e4e951ecc3add763f6229a41095445fe4,ae706729a01a36fd99f9105ef2cc489e4e951ecc3add763f6229a41095445fe4,ok
+kitten.png,AES-CTR,7.9996,-0.0022,-0.0022,,,ae706729a01a36fd99f9105ef2cc489e4e951ecc3add763f6229a41095445fe4,ae706729a01a36fd99f9105ef2cc489e4e951ecc3add763f6229a41095445fe4,ok
+kitten.png,AES-CTR (key+1bit),,,,99.62,33.43,,,

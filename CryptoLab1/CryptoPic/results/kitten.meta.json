@@ -1,0 +1,17 @@
+{
+    "source": "kitten.png",
+    "data_format": "png-file",
+    "width": 720,
+    "height": 720,
+    "sha256_original": "ae706729a01a36fd99f9105ef2cc489e4e951ecc3add763f6229a41095445fe4",
+    "kdf": "pbkdf2-hmac-sha256",
+    "salt": "3398b1f29dd6017b609acd0fc7995ab7",
+    "iterations": 200000,
+    "nonce": "0b90e9108fc54f7ade3ce7787c690da7",
+    "pixel_nonce": "9ddacaf6cfc21efe0a848aeb2e4a3d69",
+    "files": {
+        "xor": "kitten.xor.bin",
+        "ecb": "kitten.ecb.bin",
+        "ctr": "kitten.ctr.bin"
+    }
+}

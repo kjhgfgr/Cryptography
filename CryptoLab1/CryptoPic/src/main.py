@@ -3,6 +3,7 @@ import sys
 import json
 import csv
 import hashlib
+from io import BytesIO
 import numpy as np
 from PIL import Image
 import matplotlib
@@ -50,12 +51,12 @@ def pad_data(data, block_size=16):
 
 def unpad_data(data, block_size=16):
     if not data or len(data) % block_size != 0:
-        return data
+        raise ValueError("Неверная длина данных AES-ECB")
     pad_len = data[-1]
     if pad_len == 0 or pad_len > block_size:
-        return data
+        raise ValueError("Неверное дополнение AES-ECB")
     if data[-pad_len:] != bytes([pad_len] * pad_len):
-        return data
+        raise ValueError("Неверное дополнение AES-ECB")
     return data[:-pad_len]
 
 
@@ -145,13 +146,12 @@ def get_paths():
 
 def encrypt_image(img_name, password, img_dir, results_dir, rows):
     img_path = os.path.join(img_dir, img_name)
-    if not os.path.exists(img_path):
-        print(f"[skip] нет файла: {img_path}")
-        return
-
-    img = Image.open(img_path).convert('L')
-    width, height = img.size
-    original_bytes = img.tobytes()
+    with open(img_path, "rb") as f:
+        original_bytes = f.read()
+    with Image.open(BytesIO(original_bytes)) as source:
+        img = source.convert('L')
+        width, height = img.size
+        pixels = img.tobytes()
     orig_hash = hashlib.sha256(original_bytes).hexdigest()
 
     salt = os.urandom(16)
@@ -159,7 +159,8 @@ def encrypt_image(img_name, password, img_dir, results_dir, rows):
     aes_key = derive_aes_key(password, salt, iterations)
     aes_nonce = os.urandom(16)
 
-    cipher_xor = xor_crypt(original_bytes, password)
+    #разные потоки XOR
+    cipher_xor = xor_crypt(original_bytes, password + ":" + salt.hex())
     cipher_ecb = aes_ecb_encrypt(original_bytes, aes_key)
     cipher_ctr = aes_ctr_encrypt(original_bytes, aes_key, aes_nonce)
 
@@ -178,8 +179,10 @@ def encrypt_image(img_name, password, img_dir, results_dir, rows):
     with open(paths["ctr"], "wb") as f:
         f.write(cipher_ctr)
 
+    pixel_nonce = os.urandom(16)
     meta = {
         "source": img_name,
+        "data_format": "png-file",
         "width": width,
         "height": height,
         "sha256_original": orig_hash,
@@ -187,36 +190,40 @@ def encrypt_image(img_name, password, img_dir, results_dir, rows):
         "salt": salt.hex(),
         "iterations": iterations,
         "nonce": aes_nonce.hex(),
+        "pixel_nonce": pixel_nonce.hex(),
         "files": {
             "xor": os.path.basename(paths["xor"]),
             "ecb": os.path.basename(paths["ecb"]),
             "ctr": os.path.basename(paths["ctr"]),
         },
     }
-    with open(paths["meta"], "w") as f:
+    with open(paths["meta"], "w", encoding="utf-8") as f:
         json.dump(meta, f, indent=4)
 
     print(f"\nШифрование ({img_name})")
 
-    dec_xor = xor_crypt(cipher_xor, password)
-    dec_ecb = aes_ecb_decrypt(cipher_ecb, aes_key)
-    dec_ctr = aes_ctr_decrypt(cipher_ctr, aes_key, aes_nonce)
+    restored_hashes = decrypt_image(stem, password, results_dir)
+    if len(restored_hashes) != 3:
+        raise ValueError(f"{img_name}: не все варианты удалось восстановить")
 
-    print("Обратимость:")
-    print(f"XOR восстановлен: {hashlib.sha256(dec_xor).hexdigest() == orig_hash}")
-    print(f"AES-ECB восстановлен: {hashlib.sha256(dec_ecb).hexdigest() == orig_hash}")
-    print(f"AES-CTR восстановлен: {hashlib.sha256(dec_ctr).hexdigest() == orig_hash}")
-
-    ecb_truncated = cipher_ecb[:len(original_bytes)]
+    #метрики по яркостям, чтобы сравнить структуру изображения
+    pixels_xor = xor_crypt(pixels, password)
+    pixels_ecb = aes_ecb_encrypt(pixels, aes_key)[:len(pixels)]
+    pixels_ctr = aes_ctr_encrypt(pixels, aes_key, pixel_nonce)
     datasets = {
-        "Оригинал": original_bytes,
-        "XOR": cipher_xor,
-        "AES-ECB": ecb_truncated,
-        "AES-CTR": cipher_ctr,
+        "Оригинал": pixels,
+        "XOR": pixels_xor,
+        "AES-ECB": pixels_ecb,
+        "AES-CTR": pixels_ctr,
     }
 
     print("\nСтатистическое сравнение")
     for name, data in datasets.items():
+        method = name.lower().removeprefix("aes-")
+        restored_hash = restored_hashes.get(method, "")
+        if restored_hash:
+            preview = Image.frombytes("L", (width, height), data)
+            preview.save(os.path.join(results_dir, f"{stem}_{method}_encrypted.png"))
         entropy = calculate_entropy(data)
         corr_h, corr_v = calculate_correlation(data, width, height)
         print(f"{name:10} | Энтропия: {entropy:.4f} | Корр H: {corr_h:7.4f} | Корр V: {corr_v:7.4f}")
@@ -228,12 +235,15 @@ def encrypt_image(img_name, password, img_dir, results_dir, rows):
             "corr_v": round(corr_v, 4),
             "npcr": "",
             "uaci": "",
+            "sha256_original": orig_hash,
+            "sha256_restored": restored_hash,
+            "verified": "ok" if restored_hash else "",
         })
 
     key2 = bytearray(aes_key)
     key2[0] ^= 1
-    cipher_ctr_key2 = aes_ctr_encrypt(original_bytes, bytes(key2), aes_nonce)
-    npcr, uaci = calculate_npcr_uaci(cipher_ctr, cipher_ctr_key2)
+    cipher_ctr_key2 = aes_ctr_encrypt(pixels, bytes(key2), pixel_nonce)
+    npcr, uaci = calculate_npcr_uaci(pixels_ctr, cipher_ctr_key2)
     print("\nИзменение ключа")
     print(f"NPCR: {npcr:.2f}%")
     print(f"UACI: {uaci:.2f}%")
@@ -251,7 +261,8 @@ def encrypt_image(img_name, password, img_dir, results_dir, rows):
     plt.figure(figsize=(12, 8))
     for i, (name, data) in enumerate(datasets.items(), 1):
         plt.subplot(2, 2, i)
-        plt.hist(np.frombuffer(data, dtype=np.uint8), bins=256, color='teal', alpha=0.7)
+        plt.hist(np.frombuffer(data, dtype=np.uint8), bins=256, range=(0, 256),
+                 color='teal', alpha=0.7)
         plt.title(f"Распределение: {name}")
         plt.xlabel("Яркость пикселя")
         plt.ylabel("Кол-во")
@@ -264,45 +275,63 @@ def encrypt_image(img_name, password, img_dir, results_dir, rows):
 
 def decrypt_image(stem, password, results_dir):
     meta_path = os.path.join(results_dir, f"{stem}.meta.json")
-    if not os.path.exists(meta_path):
-        print(f"[error] нет meta: {meta_path}")
-        return
-
-    with open(meta_path, "r") as f:
+    with open(meta_path, "r", encoding="utf-8") as f:
         meta = json.load(f)
 
+    data_format = meta.get("data_format", "gray-pixels")
+    if data_format not in ("png-file", "gray-pixels"):
+        raise ValueError(f"{meta_path}: неизвестный формат данных")
+    png_file = data_format == "png-file"
     salt = bytes.fromhex(meta["salt"])
     iterations = meta["iterations"]
     nonce = bytes.fromhex(meta["nonce"])
     orig_hash = meta["sha256_original"]
     aes_key = derive_aes_key(password, salt, iterations)
+    xor_password = password + ":" + salt.hex() if png_file else password
 
     files = meta["files"]
-    ok_all = True
+    restored_hashes = {}
     for method in ("xor", "ecb", "ctr"):
         path = os.path.join(results_dir, files[method])
-        with open(path, "rb") as f:
-            blob = f.read()
+        try:
+            with open(path, "rb") as f:
+                blob = f.read()
+            if method == "xor":
+                dec = xor_crypt(blob, xor_password)
+            elif method == "ecb":
+                dec = aes_ecb_decrypt(blob, aes_key)
+            else:
+                dec = aes_ctr_decrypt(blob, aes_key, nonce)
 
-        if method == "xor":
-            dec = xor_crypt(blob, password)
-        elif method == "ecb":
-            dec = aes_ecb_decrypt(blob, aes_key)
-        else:
-            dec = aes_ctr_decrypt(blob, aes_key, nonce)
+            restored_hash = hashlib.sha256(dec).hexdigest()
+            if restored_hash != orig_hash:
+                raise ValueError("SHA-256 не совпал. Проверь пароль и шифротекст")
 
-        ok = hashlib.sha256(dec).hexdigest() == orig_hash
-        ok_all = ok_all and ok
-        print(f"{method}: {'OK' if ok else 'FAIL'}")
+            if png_file:
+                output = os.path.join(results_dir, f"{stem}_{method}_restored.png")
+                with open(output, "wb") as f:
+                    f.write(dec)
+            else:
+                output = os.path.join(results_dir, f"{stem}_{method}_restored_gray.png")
+                Image.frombytes("L", (meta["width"], meta["height"]), dec).save(output)
+        except (OSError, ValueError) as error:
+            print(f"{path}: ошибка — {error}", file=sys.stderr)
+            continue
 
-    print(f"[{stem}] полное восстановление: {ok_all}")
+        restored_hashes[method] = restored_hash
+        print(f"{method}: SHA-256 совпал — {restored_hash}\n  {output}")
+
+    checked = "SHA-256 PNG-файла" if png_file else "SHA-256 серых пикселей"
+    print(f"[{stem}] {checked}: проверено {len(restored_hashes)} из 3")
+    return restored_hashes
 
 
 def write_metrics_csv(rows, results_dir, filename="metrics.csv"):
     if not rows:
         return
     path = os.path.join(results_dir, filename)
-    fieldnames = ["image", "method", "entropy", "corr_h", "corr_v", "npcr", "uaci"]
+    fieldnames = ["image", "method", "entropy", "corr_h", "corr_v", "npcr", "uaci",
+                  "sha256_original", "sha256_restored", "verified"]
     with open(path, "w", newline="", encoding="utf-8-sig") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
@@ -315,20 +344,19 @@ def main():
 
     if len(sys.argv) >= 2 and sys.argv[1] == "decrypt":
         if len(sys.argv) < 4:
-            print("usage: python main.py decrypt <stem> <password>")
-            return
+            print("Запуск неправильный")
+            return 2
         stem = os.path.splitext(sys.argv[2])[0]
         password = sys.argv[3]
         print(f"Расшифрование {stem}:")
-        decrypt_image(stem, password, results_dir)
-        return
+        return 0 if len(decrypt_image(stem, password, results_dir)) == 3 else 1
 
     if len(sys.argv) >= 2 and sys.argv[1] != "decrypt":
         password = sys.argv[1]
     else:
         password = "secret_pass"
 
-    images = ["gradient.png", "checkerboard.png"]
+    images = ["gradient.png", "kitten.png"]
 
     rows = []
     for img_name in images:
@@ -338,4 +366,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        sys.exit(main())
+    except (OSError, ValueError, KeyError) as error:
+        sys.exit(f"Ошибка: {error}")
