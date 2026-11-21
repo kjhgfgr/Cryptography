@@ -237,7 +237,7 @@ def experiment_text(capacity_bits, percent):
     if percent is None:
         return MESSAGE
 
-    # В процент заполнения входят заголовок и весь пакет AES-GCM.
+    #в процент заполнения входят заголовок и весь пакет AES-GCM
     packet_bytes = capacity_bits * percent // (100 * 8)
     text_bytes = packet_bytes - LENGTH_BYTES - ENCRYPTED_OVERHEAD
     if text_bytes <= 0:
